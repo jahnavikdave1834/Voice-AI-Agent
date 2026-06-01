@@ -1,0 +1,66 @@
+# =============================================================================
+# Voice AI Appointment Booking Agent
+# Target runtime: Python 3.11
+#
+# Reproducible installs:
+#   python -m venv .venv
+#   .venv\Scripts\activate          # Windows
+#   pip install -r requirements.txt
+#
+# Note: openai-whisper pulls PyTorch automatically on first install.
+# =============================================================================
+
+# ----- Web application (Streamlit UI) -----
+streamlit==1.46.1
+
+# ----- Configuration & validation -----
+python-dotenv==1.1.0
+pydantic==2.11.4
+
+# ----- Speech-to-text (Whisper) & audio capture -----
+# openai-whisper==20240930
+numpy==1.26.4
+sounddevice==0.5.1
+soundfile==0.13.1
+
+# ----- Text-to-speech & alternative STT (gTTS / SpeechRecognition) -----
+gTTS==2.5.4
+SpeechRecognition==3.14.3
+
+# ----- Dialogue engine (LangChain + Google Gemini) -----
+groq==0.5.0
+setuptools==75.1.0
+wheel==0.44.0
+
+# ----- Google Calendar API (OAuth 2.0) -----
+google-api-python-client==2.172.0
+google-auth==2.40.2
+google-auth-oauthlib==1.2.2
+google-auth-httplib2==0.2.0
+
+# ----- Data processing (reports, exports, slot analytics) -----
+pandas==2.2.3
+
+# ----- Notifications (webhook delivery) -----
+requests==2.32.3
+
+# ----- Testing -----
+pytest==8.3.5
+pytest-cov==6.1.1
+
+
+
+
+groq
+dateparser
+streamlit
+gtts
+pydub
+openai-whisper
+google-api-python-client
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+python-dotenv
+pydantic
+pydantic-settings
