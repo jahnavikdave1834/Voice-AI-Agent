@@ -132,6 +132,48 @@ class DialogueManager:
         )
 
     # =====================================================
+    # HANDLE CONFIRMATION (SLOT SELECTION)
+    # =====================================================
+
+    def handle_confirmation(
+        self,
+        user_input,
+    ):
+
+        state = self.booking_state
+
+        # Try to parse a time from the user input
+        from dateparser import parse
+
+        parsed_time = parse(
+            user_input.strip()
+        )
+
+        if parsed_time:
+
+            state.time = (
+                parsed_time.strftime("%H:%M")
+            )
+
+            state.awaiting_slot_selection = False
+
+            state.awaiting_confirmation = True
+
+            logger.info(
+                f"Slot selected: {state.time}"
+            )
+
+            return (
+                self.build_final_confirmation()
+            )
+
+        return (
+            "I didn't catch the time. "
+            "Please choose one of the "
+            "available slots listed above."
+        )
+
+    # =====================================================
     # BUILD FINAL CONFIRMATION
     # =====================================================
 
@@ -151,7 +193,7 @@ Please review your appointment details:
 • Contact: {state.contact}
 • Email: {state.email}
 
-Would you like to update anything?
+Do you want to confirm booking?
 
 Reply:
 • YES to confirm booking

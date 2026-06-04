@@ -1,282 +1,111 @@
-"""
-Notifications — Email Sender.
-
-Sends booking confirmation emails.
-"""
-
 import logging
 import smtplib
 
-from email.mime.multipart import (
-    MIMEMultipart,
-)
-
-from email.mime.text import (
-    MIMEText,
-)
+from email.mime.text import MIMEText
 
 logger = logging.getLogger(__name__)
 
 
 class EmailSender:
 
-    # =====================================================
-    # INIT
-    # =====================================================
-
     def __init__(
-
         self,
-
-        sender_email,
-
-        sender_password,
-
+        smtp_email,
+        smtp_password,
         smtp_server="smtp.gmail.com",
-
         smtp_port=587,
-
     ):
 
-        self.sender_email = sender_email
+        self.smtp_email = smtp_email
 
-        self.sender_password = sender_password
+        self.smtp_password = smtp_password
 
         self.smtp_server = smtp_server
 
         self.smtp_port = smtp_port
 
-        logger.info(
-
-            f"EmailSender initialized "
-
-            f"(server={smtp_server}:{smtp_port})."
-
-        )
-
     # =====================================================
-    # SEND BOOKING CONFIRMATION
+    # SEND CONFIRMATION EMAIL
     # =====================================================
 
     def send_booking_confirmation(
-
         self,
-
-        booking_data,
-
+        booking_state,
     ):
 
-        # =================================================
-        # VALIDATE
-        # =================================================
+        if (
+            not self.smtp_email
+            or not self.smtp_password
+        ):
 
-        if not booking_data.get("email"):
-
-            raise ValueError(
-                "Recipient email missing."
+            logger.warning(
+                "Email credentials missing."
             )
 
-        # =================================================
-        # EMAIL CONTENT
-        # =================================================
+            return
 
         subject = (
             "Appointment Confirmation"
         )
 
         body = f"""
-Hello {booking_data.get('name')},
+Hello {booking_state.name},
 
 Your appointment has been confirmed.
 
-==================================
-
 Service:
-{booking_data.get('service_type')}
+{booking_state.service_type}
 
 Date:
-{booking_data.get('date')}
+{booking_state.date}
 
 Time:
-{booking_data.get('time')}
+{booking_state.time}
 
 Contact:
-{booking_data.get('contact')}
+{booking_state.contact}
 
 Booking ID:
-{booking_data.get('event_id')}
+{booking_state.event_id}
 
-==================================
-
-Thank you for choosing us.
-
-Regards,
-Aria AI Appointment System
+Thank you.
 """
 
-        # =================================================
-        # MIME MESSAGE
-        # =================================================
+        msg = MIMEText(body)
 
-        message = MIMEMultipart()
+        msg["Subject"] = subject
 
-        message["From"] = (
-            self.sender_email
-        )
+        msg["From"] = self.smtp_email
 
-        message["To"] = (
-            booking_data.get("email")
-        )
-
-        message["Subject"] = subject
-
-        message.attach(
-
-            MIMEText(
-                body,
-                "plain",
-            )
-
-        )
-
-        # =================================================
-        # SMTP SEND
-        # =================================================
+        msg["To"] = booking_state.email
 
         try:
 
-            server = smtplib.SMTP(
-
+            with smtplib.SMTP(
                 self.smtp_server,
-
                 self.smtp_port,
+            ) as server:
 
-                timeout=10,
+                server.set_debuglevel(1)
+                server.starttls()
+                server.login(self.smtp_email, self.smtp_password)
 
-            )
-
-            server.starttls()
-
-            server.login(
-
-                self.sender_email,
-
-                self.sender_password,
-
-            )
-
-            server.sendmail(
-
-                self.sender_email,
-
-                booking_data.get("email"),
-
-                message.as_string(),
-
-            )
-
-            server.quit()
-
-            logger.info(
-
-                f"Confirmation email sent to "
-
-                f"{booking_data.get('email')}"
-
-            )
-
-            return True
-
-        except Exception as e:
-
-            logger.error(
-                f"Email sending failed: {e}"
-            )
-
-            return False
-
-    # =====================================================
-    # GENERIC SEND EMAIL
-    # =====================================================
-
-    def send_email(
-
-        self,
-
-        recipient_email,
-
-        subject,
-
-        body,
-
-    ):
-
-        try:
-
-            message = MIMEMultipart()
-
-            message["From"] = (
-                self.sender_email
-            )
-
-            message["To"] = (
-                recipient_email
-            )
-
-            message["Subject"] = subject
-
-            message.attach(
-
-                MIMEText(
-                    body,
-                    "plain",
+                logger.info(
+                    f"SMTP Email: {self.smtp_email}"
                 )
 
-            )
+                logger.info(
+                    f"Password Length: {len(self.smtp_password) if self.smtp_password else 0}"
+                )
 
-            server = smtplib.SMTP(
-
-                self.smtp_server,
-
-                self.smtp_port,
-
-                timeout=10,
-
-            )
-
-            server.starttls()
-
-            server.login(
-
-                self.sender_email,
-
-                self.sender_password,
-
-            )
-
-            server.sendmail(
-
-                self.sender_email,
-
-                recipient_email,
-
-                message.as_string(),
-
-            )
-
-            server.quit()
+                server.send_message(msg)
 
             logger.info(
-                f"Email sent to "
-                f"{recipient_email}"
+                "Confirmation email sent."
             )
-
-            return True
 
         except Exception as e:
 
-            logger.error(
-                f"Generic email failed: {e}"
+            logger.exception(
+                f"Email sending failed: {e}"
             )
-
-            return False

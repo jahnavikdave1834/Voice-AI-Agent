@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+from .date_time_parser import normalize_datetime
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -76,12 +77,13 @@ class CalendarManager:
             # COMBINE DATE + TIME
             # =============================================
 
+            parsed_date, parsed_time = normalize_datetime(date, time)
+            if not parsed_date or not parsed_time:
+                logger.error(f"Failed to normalize date/time: {date} {time}")
+                return None
             start_datetime = datetime.strptime(
-
-                f"{date} {time}",
-
+                f"{parsed_date} {parsed_time}",
                 "%Y-%m-%d %H:%M",
-
             )
 
             end_datetime = (
@@ -169,7 +171,7 @@ class CalendarManager:
                 f"Availability check failed: {e}"
             )
 
-            return False
+            return None
 
     # =====================================================
     # SUGGEST ALTERNATIVE SLOTS
@@ -209,7 +211,7 @@ class CalendarManager:
                     )
                 )
 
-                if available:
+                if available is True:
 
                     alternatives.append(
                         candidate
@@ -319,14 +321,6 @@ class CalendarManager:
 
                 },
 
-                "attendees": [
-
-                    {
-                        "email": booking_details["email"]
-                    }
-
-                ],
-
             }
 
             # =============================================
@@ -343,8 +337,6 @@ class CalendarManager:
 
                     body=event,
 
-                    sendUpdates="all",
-
                 )
                 .execute()
 
@@ -353,7 +345,9 @@ class CalendarManager:
             event_id = created_event.get("id")
 
             logger.info(
-                f"Calendar event created: {event_id}"
+                f"Calendar event created: {event_id} "
+                f"(Note: Attendee invitations not sent due to service account limitations. "
+                f"Customer email is stored in event description.)"
             )
 
             return {

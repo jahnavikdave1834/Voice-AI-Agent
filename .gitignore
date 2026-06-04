@@ -1,8 +1,123 @@
+# =========================
+# Environment & Secrets
+# =========================
 .env
+.env.*
+*.env
+
 credentials.json
 credentials/
-logs/
-venv/
+client_secret.json
+service_account.json
+token.json
+google_credentials.json
 
+# Streamlit Secrets
+.streamlit/secrets.toml
+
+# =========================
+# Virtual Environments
+# =========================
+venv/
+.venv/
+env/
+
+# =========================
+# Python Cache
+# =========================
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+
+# =========================
+# Pytest
+# =========================
+.pytest_cache/
+.coverage
+htmlcov/
+
+# =========================
+# IDE
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Build Artifacts
+# =========================
+build/
+dist/
+*.egg-info/
+
+# =========================
+# Databases
+# =========================
+*.db
+*.sqlite
+*.sqlite3
+
+# =========================
+# Temporary Files
+# =========================
+temp/
+tmp/
+*.tmp
+
+# =========================
+# Audio Files (Generated)
+# =========================
+tts_output/
+voice_output/
+
+# =========================
+# Local Debug Files
+# =========================
+.agent.md
+debug_*.py
+test_email_sender.py
+
+# =========================
+# Jupyter
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# Model Cache (Optional)
+# =========================
+models/
+cache/
+
+
+.agent.md
+test_email_sender.py
+debug_*.py
+
+.streamlit/secrets.toml
+
+.pytest_cache/
+.coverage
+htmlcov/
+
+.vscode/
+.idea/
+
+*.db
+*.sqlite
+*.sqlite3
+
+build/
+dist/
+*.egg-info/

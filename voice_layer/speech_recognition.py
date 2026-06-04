@@ -16,13 +16,15 @@ class SpeechRecognizer:
 
     MIN_AUDIO_BYTES = 1000
 
+    _cached_model = None
+
     # =====================================================
     # INIT
     # =====================================================
 
     def __init__(
         self,
-        model_size="medium"
+        model_size="small.en"
     ):
 
         self.whisper_model_size = model_size
@@ -40,14 +42,23 @@ class SpeechRecognizer:
 
     def _load_model(self):
 
-        if self.whisper_model is None:
+        # =============================================
+        # USE CACHED MODEL
+        # =============================================
+
+        if (
+            SpeechRecognizer
+            ._cached_model
+            is None
+        ):
 
             logger.info(
                 f"Loading Whisper model: "
                 f"'{self.whisper_model_size}' ..."
             )
 
-            self.whisper_model = (
+            SpeechRecognizer._cached_model = (
+
                 whisper.load_model(
                     self.whisper_model_size
                 )
@@ -56,6 +67,10 @@ class SpeechRecognizer:
             logger.info(
                 "Whisper model loaded successfully."
             )
+
+        self.whisper_model = (
+            SpeechRecognizer._cached_model
+        )
 
     # =====================================================
     # TRANSCRIBE FILE
@@ -90,6 +105,8 @@ class SpeechRecognizer:
                     self.whisper_model.transcribe(
                         audio_path,
                         fp16=False,
+                        language="en",
+                        initial_prompt="Hello, yes, okay. I would like to book an appointment for a service on Monday at 10 a.m. John Doe. My email is email@example.com."
                     )
                 )
 
@@ -105,14 +122,19 @@ class SpeechRecognizer:
                     ).strip()
                 )
 
-                if text:
+                # =====================================
+                # EMPTY TRANSCRIPT FILTER
+                # =====================================
 
-                    return text
+                if len(text) < 2:
 
-                logger.warning(
-                    f"Empty transcription "
-                    f"(attempt {attempt})"
-                )
+                    logger.warning(
+                        "Ignoring empty transcription."
+                    )
+
+                    return ""
+
+                return text
 
             except Exception as e:
 
@@ -141,7 +163,10 @@ class SpeechRecognizer:
                 "No audio data received."
             )
 
-        if len(audio_bytes) < self.MIN_AUDIO_BYTES:
+        if (
+            len(audio_bytes)
+            < self.MIN_AUDIO_BYTES
+        ):
 
             raise RuntimeError(
                 "Audio too short or empty."
@@ -152,9 +177,9 @@ class SpeechRecognizer:
             f"{len(audio_bytes)}"
         )
 
-        # =================================================
-        # SAVE TEMP AUDIO
-        # =================================================
+        # =============================================
+        # SAVE RAW AUDIO
+        # =============================================
 
         with tempfile.NamedTemporaryFile(
             suffix=".wav",
@@ -177,25 +202,32 @@ class SpeechRecognizer:
 
         try:
 
+            # =========================================
+            # LOAD AUDIO
+            # =========================================
+
             audio = AudioSegment.from_file(
                 raw_path
             )
 
-            # =============================================
+            # =========================================
             # SILENCE DETECTION
-            # =============================================
+            # =========================================
 
             if audio.dBFS < -45:
 
-                raise RuntimeError(
+                logger.warning(
                     "Audio too silent."
                 )
 
-            # =============================================
+                return ""
+
+            # =========================================
             # STANDARDIZE AUDIO
-            # =============================================
+            # =========================================
 
             audio = (
+
                 audio
                 .set_frame_rate(16000)
                 .set_channels(1)
@@ -211,9 +243,9 @@ class SpeechRecognizer:
                 f"{converted_path}"
             )
 
-            # =============================================
+            # =========================================
             # TRANSCRIBE
-            # =============================================
+            # =========================================
 
             text = (
                 self.transcribe_from_file(
@@ -223,9 +255,11 @@ class SpeechRecognizer:
 
             if not text.strip():
 
-                raise RuntimeError(
+                logger.warning(
                     "No speech detected."
                 )
+
+                return ""
 
             logger.info(
                 f"Final transcription: "
@@ -236,9 +270,9 @@ class SpeechRecognizer:
 
         finally:
 
-            # =============================================
-            # CLEANUP
-            # =============================================
+            # =========================================
+            # CLEAN TEMP FILES
+            # =========================================
 
             for path in [
                 raw_path,

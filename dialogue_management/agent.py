@@ -197,6 +197,14 @@ What type of appointment would you like to book?
                 # SLOT NOT AVAILABLE
                 # ========================================
 
+                if available is None:
+                    response = "I couldn't verify the date or time format. Please provide them again."
+                    booking_state.awaiting_confirmation = False
+                    booking_state.date = None
+                    booking_state.time = None
+                    self._append_assistant(response)
+                    return response
+
                 if not available:
 
                     booking_state.awaiting_slot_selection = True
@@ -204,7 +212,8 @@ What type of appointment would you like to book?
                     alternatives = (
                         self.calendar_manager
                         .suggest_alternative_slots(
-                            booking_state.date
+                            booking_state.date,
+                            booking_state.time,
                         )
                     )
 
@@ -248,6 +257,11 @@ What type of appointment would you like to book?
                     })
                 )
 
+                if not booking_result.get("success"):
+                    response = "I'm sorry, there was an issue creating your calendar event. Please try again later."
+                    self._append_assistant(response)
+                    return response
+
                 event_id = booking_result.get("event_id")
 
                 booking_state.event_id = (
@@ -262,6 +276,7 @@ What type of appointment would you like to book?
 
                 try:
 
+                    # Pass the BookingState object so EmailSender can access attributes
                     self.email_sender.send_booking_confirmation(
                         booking_state
                     )
@@ -313,16 +328,16 @@ What type of appointment would you like to book?
 
                 booking_state.awaiting_confirmation = False
 
-                response = """
+                response = """\
 Which field would you like to update?
 
 Options:
-• service_type
+• service type
 • date
 • time
 • name
-• contact
-• email
+• contact number
+• email address
 """
 
                 self._append_assistant(
@@ -352,14 +367,17 @@ Options:
             .awaiting_update_field
         ):
 
-            raw_field = (
-                user_input.lower().strip()
-            )
+            import string
+            # Remove punctuation and hyphens
+            cleaned_input = user_input.lower().translate(str.maketrans('', '', string.punctuation))
+            cleaned_input = cleaned_input.replace("-", " ").strip()
 
             field_aliases = {
 
                 "email": "email",
                 "email address": "email",
+                "e-mail": "email",
+                "e-mail address": "email",
                 "mail": "email",
 
                 "phone": "contact",
@@ -380,11 +398,11 @@ Options:
                 "name": "name",
             }
 
-            field_name = (
-                field_aliases.get(
-                    raw_field
-                )
-            )
+            field_name = None
+            for alias, mapped_field in field_aliases.items():
+                if alias in cleaned_input:
+                    field_name = mapped_field
+                    break
 
             if not field_name:
 
@@ -409,10 +427,17 @@ Options:
 
             booking_state.awaiting_update_value = True
 
+            field_display = {
+                "email": "email address",
+                "contact": "contact number",
+                "service_type": "service type",
+                "date": "date",
+                "time": "time",
+                "name": "name",
+            }.get(field_name, field_name)
+
             response = (
-                f"Please provide the "
-                f"new value for "
-                f"{field_name}."
+                f"Please say your new {field_display}."
             )
 
             self._append_assistant(
@@ -453,6 +478,13 @@ Options:
                     user_input.strip()
                 )
 
+            new_value = self.slot_extractor._normalize_slot_value(field_name, new_value)
+            
+            if not new_value:
+                response = f"I couldn't understand that as a valid {field_name}. Please try again."
+                self._append_assistant(response)
+                return response
+
             setattr(
                 booking_state,
                 field_name,
@@ -480,11 +512,15 @@ Options:
         # NORMAL SLOT EXTRACTION
         # ================================================
 
+        missing = booking_state.get_missing_fields()
+        current_field = missing[0] if missing else None
+
         extracted_slots = (
 
             self.slot_extractor
             .extract_slots(
-                user_input
+                user_input,
+                current_field=current_field,
             )
         )
 
