@@ -9,6 +9,8 @@ import re
 from datetime import datetime, timedelta
 from typing import Optional
 
+from config.settings import get_settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -39,6 +41,13 @@ WEEKDAY_NAMES = {
 }
 
 
+def _get_base_datetime() -> datetime:
+    """Get the base datetime using the configured BASE_YEAR."""
+    settings = get_settings()
+    now = datetime.now()
+    return datetime(settings.BASE_YEAR, now.month, now.day, now.hour, now.minute, now.second)
+
+
 def resolve_relative_date(text: str) -> Optional[str]:
     """
     Resolve relative date expressions to YYYY-MM-DD format.
@@ -50,7 +59,7 @@ def resolve_relative_date(text: str) -> Optional[str]:
         Date string in YYYY-MM-DD format, or None if not resolvable.
     """
     text_lower = text.lower().strip()
-    today = datetime.now()
+    today = _get_base_datetime()
 
     # Direct relative dates
     for phrase, delta in RELATIVE_DATES.items():

@@ -1,5 +1,5 @@
 from functools import lru_cache
-
+import os
 from pydantic_settings import (
     BaseSettings,
     SettingsConfigDict,
@@ -10,7 +10,10 @@ class Settings(BaseSettings):
 
     GROQ_API_KEY: str = ""
 
-    GOOGLE_CALENDAR_ID: str = "primary"
+    GOOGLE_CALENDAR_ID: str = os.getenv(
+        "GOOGLE_CALENDAR_ID",
+        "aira.agent.ai@gmail.com"
+    )
 
     GOOGLE_CREDENTIALS_FILE: str = (
         "credentials.json"
@@ -35,6 +38,8 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     LOG_LEVEL: str = "INFO"
+
+    BASE_YEAR: int = 2026
 
     model_config = SettingsConfigDict(
 

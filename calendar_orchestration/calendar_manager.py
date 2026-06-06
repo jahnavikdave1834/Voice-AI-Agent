@@ -1,7 +1,8 @@
 import logging
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from .date_time_parser import normalize_datetime
-
+import os
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
@@ -16,11 +17,15 @@ class CalendarManager:
 
         credentials_file="credentials.json",
 
-        calendar_id="primary",
+        calendar_id=os.getenv("GOOGLE_CALENDAR_ID"),
 
     ):
 
         self.calendar_id = calendar_id
+
+        logger.info(
+            f"Calendar ID being used: {calendar_id}"
+        )
 
         self.service = None
 
@@ -81,10 +86,25 @@ class CalendarManager:
             if not parsed_date or not parsed_time:
                 logger.error(f"Failed to normalize date/time: {date} {time}")
                 return None
+            # Create timezone-aware datetime in the system's local timezone
+            try:
+                # Try to get local timezone
+                local_tz = ZoneInfo(datetime.now().astimezone().tzinfo.key)
+            except (AttributeError, KeyError):
+                # Fallback: try to detect local timezone or default to UTC
+                try:
+                    from tzlocal import get_localzone
+                    local_tz = ZoneInfo(get_localzone().key)
+                except ImportError:
+                    # Default to UTC if tzlocal is not available
+                    logger.warning("Could not determine local timezone, defaulting to UTC")
+                    local_tz = ZoneInfo('UTC')
             start_datetime = datetime.strptime(
                 f"{parsed_date} {parsed_time}",
                 "%Y-%m-%d %H:%M",
-            )
+            ).replace(tzinfo=local_tz)
+            # Convert to UTC for Google Calendar (RFC3339 expects Z suffix for UTC)
+            start_utc = start_datetime.astimezone(ZoneInfo('UTC'))
 
             end_datetime = (
 
@@ -94,6 +114,7 @@ class CalendarManager:
                 )
 
             )
+            end_utc = end_datetime.astimezone(ZoneInfo('UTC'))
 
             # =============================================
             # CLINIC WORKING HOURS
@@ -122,17 +143,9 @@ class CalendarManager:
 
                     calendarId=self.calendar_id,
 
-                    timeMin=(
-                        start_datetime
-                        .isoformat()
-                        + "Z"
-                    ),
+                    timeMin=start_utc.isoformat() ,
 
-                    timeMax=(
-                        end_datetime
-                        .isoformat()
-                        + "Z"
-                    ),
+                    timeMax=end_utc.isoformat() ,
 
                     singleEvents=True,
 
@@ -254,15 +267,25 @@ class CalendarManager:
             # DATETIME
             # =============================================
 
+            # Build a timezone‑aware datetime in the system's local timezone
+            try:
+                # Try to get local timezone
+                local_tz = ZoneInfo(datetime.now().astimezone().tzinfo.key)
+            except (AttributeError, KeyError):
+                # Fallback: try to detect local timezone or default to UTC
+                try:
+                    from tzlocal import get_localzone
+                    local_tz = ZoneInfo(get_localzone().key)
+                except ImportError:
+                    # Default to UTC if tzlocal is not available
+                    logger.warning("Could not determine local timezone, defaulting to UTC")
+                    local_tz = ZoneInfo('UTC')
             start_datetime = datetime.strptime(
-
-                f"{booking_details['date']} "
-
-                f"{booking_details['time']}",
-
+                f"{booking_details['date']} {booking_details['time']}",
                 "%Y-%m-%d %H:%M",
-
-            )
+            ).replace(tzinfo=local_tz)
+            # Convert to UTC for the API
+            start_utc = start_datetime.astimezone(ZoneInfo('UTC'))
 
             end_datetime = (
 
@@ -272,6 +295,7 @@ class CalendarManager:
                 )
 
             )
+            end_utc = end_datetime.astimezone(ZoneInfo('UTC'))
 
             # =============================================
             # EVENT PAYLOAD
@@ -302,23 +326,13 @@ class CalendarManager:
                 ),
 
                 "start": {
-
-                    "dateTime": (
-                        start_datetime.isoformat()
-                    ),
-
-                    "timeZone": "Asia/Kolkata",
-
+                    "dateTime": start_utc.isoformat().replace('+00:00', 'Z'),
+                    "timeZone": "UTC",
                 },
 
                 "end": {
-
-                    "dateTime": (
-                        end_datetime.isoformat()
-                    ),
-
-                    "timeZone": "Asia/Kolkata",
-
+                    "dateTime": end_utc.isoformat().replace('+00:00', 'Z'),
+                    "timeZone": "UTC",
                 },
 
             }
@@ -447,13 +461,11 @@ class CalendarManager:
                     calendarId=self.calendar_id,
 
                     timeMin=(
-                        start.isoformat()
-                        + "Z"
+                        start.isoformat().replace('+00:00', 'Z')
                     ),
 
                     timeMax=(
-                        end.isoformat()
-                        + "Z"
+                        end.isoformat().replace('+00:00', 'Z')
                     ),
 
                     singleEvents=True,
