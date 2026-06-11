@@ -220,20 +220,18 @@ What type of appointment would you like to book?
                     response = (
                         "The selected slot is "
                         "already booked.\n\n"
-
-                        "Available slots:\n"
                     )
 
-                    for slot in alternatives:
-
+                    if alternatives:
+                        response += "Available slots:\n"
+                        for slot in alternatives:
+                            response += f"• {slot}\n"
+                        response += "\nPlease choose another time."
+                    else:
                         response += (
-                            f"• {slot}\n"
+                            "Unfortunately, there are no available slots "
+                            "for this date. Please try a different date."
                         )
-
-                    response += (
-                        "\nPlease choose "
-                        "another time."
-                    )
 
                     self._append_assistant(
                         response

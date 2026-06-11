@@ -234,7 +234,7 @@ class CalendarManager:
                     break
 
             logger.info(
-                f"Alternative slots: {alternatives}"
+                f"Alternative slots for {date} {preferred_time}: {alternatives}"
             )
 
             return alternatives

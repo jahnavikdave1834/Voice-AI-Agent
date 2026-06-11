@@ -12,6 +12,10 @@ import logging
 
 import streamlit as st
 
+from utilities.streamlit_compat import install_shutdown_guard
+
+install_shutdown_guard()
+
 from config.settings import get_settings
 
 from dialogue_management.agent import (

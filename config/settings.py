@@ -1,5 +1,5 @@
 from functools import lru_cache
-import os
+
 from pydantic_settings import (
     BaseSettings,
     SettingsConfigDict,
@@ -10,10 +10,7 @@ class Settings(BaseSettings):
 
     GROQ_API_KEY: str = ""
 
-    GOOGLE_CALENDAR_ID: str = os.getenv(
-        "GOOGLE_CALENDAR_ID",
-        "aira.agent.ai@gmail.com"
-    )
+    GOOGLE_CALENDAR_ID: str = "primary"
 
     GOOGLE_CREDENTIALS_FILE: str = (
         "credentials.json"
@@ -31,7 +28,7 @@ class Settings(BaseSettings):
 
     WEBHOOK_URL: str = ""
 
-    WHISPER_MODEL_SIZE: str = "small"
+    WHISPER_MODEL_SIZE: str = "small.en"
 
     TTS_LANGUAGE: str = "en"
 

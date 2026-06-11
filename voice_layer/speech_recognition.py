@@ -106,6 +106,7 @@ class SpeechRecognizer:
                         audio_path,
                         fp16=False,
                         language="en",
+                        task="transcribe",
                         initial_prompt="Hello, yes, okay. I would like to book an appointment for a service on Monday at 10 a.m. John Doe. My email is email@example.com."
                     )
                 )

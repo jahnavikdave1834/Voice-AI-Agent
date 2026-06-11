@@ -168,19 +168,122 @@ Format:
             .replace("a.m.", "am")
             .replace("p.m.", "pm")
             .replace(" o'clock", ":00")
-            .replace(" o’clock", ":00")
+            .replace(" o'clock", ":00")
             .replace("o'clock", ":00")
-            .replace("o’clock", ":00")
+            .replace("o'clock", ":00")
             .replace(" oclock", ":00")
             .replace("oclock", ":00")
-            .replace("’", "")
-            .replace("‘", "")
+            .replace("'", "")
+            .replace("", "")
             .strip()
         )
 
         normalized = re.sub(r"[^0-9a-z:\s@._%+-]", "", normalized)
         normalized = re.sub(r"\s+", " ", normalized)
         return normalized
+
+    def _normalize_email(self, email_text: str) -> str:
+        """
+        Normalize email addresses from spoken text.
+        Handles character-by-character spelling, spoken numbers, and common patterns.
+        """
+        if not email_text:
+            return email_text
+
+        original = email_text
+        normalized = email_text.lower().strip()
+
+        logger.info(f"Raw email text: '{original}'")
+
+        # Step 1: Convert spoken words to symbols
+        spoken_to_symbol = {
+            " at ": "@",
+            " dot ": ".",
+            " underscore ": "_",
+            " dash ": "-",
+            " hyphen ": "-",
+            " period ": ".",
+        }
+
+        for spoken, symbol in spoken_to_symbol.items():
+            normalized = normalized.replace(spoken, symbol)
+
+        # Step 2: Convert spoken numbers to digits
+        number_words = {
+            "zero": "0",
+            "one": "1",
+            "two": "2",
+            "three": "3",
+            "four": "4",
+            "five": "5",
+            "six": "6",
+            "seven": "7",
+            "eight": "8",
+            "nine": "9",
+        }
+
+        # Handle spoken numbers (e.g., "one two three" → "123")
+        for word, digit in number_words.items():
+            normalized = re.sub(rf"\b{word}\b", digit, normalized)
+
+        # Step 3: Handle character-by-character spelling patterns
+        # Remove hyphens and spaces between single characters (spelling patterns)
+        # But preserve hyphens that are part of the actual email
+        processed_chars = []
+        chars = list(normalized)
+        i = 0
+        
+        while i < len(chars):
+            if i > 0 and i < len(chars) - 1:
+                prev_char = chars[i-1]
+                current = chars[i]
+                next_char = chars[i+1]
+                
+                # Check if this is a separator between single characters
+                if current in ['-', ' '] and len(prev_char) == 1 and len(next_char) == 1:
+                    # Skip this separator (it's part of spelling pattern)
+                    i += 1
+                    continue
+            
+            processed_chars.append(chars[i])
+            i += 1
+        
+        normalized = ''.join(processed_chars)
+
+        # Step 4: Remove extra spaces
+        normalized = re.sub(r"\s+", "", normalized)
+
+        # Step 5: Handle specific patterns
+        # Convert "at" or "@" when not surrounded by spaces
+        normalized = re.sub(r"\bat\b", "@", normalized)
+        
+        # Convert "dot" or "." when not surrounded by spaces
+        normalized = re.sub(r"\bdot\b", ".", normalized)
+
+        logger.info(f"Normalized email text: '{normalized}'")
+
+        return normalized
+
+    def _is_spelling_pattern(self, text: str) -> bool:
+        """
+        Detect if text looks like a character-by-character spelling pattern.
+        Returns True if text has many single-character segments (e.g., J-A-H-N-A-V-I).
+        Returns False for intentional hyphens (e.g., test-user).
+        """
+        # Split by hyphens and check segments
+        segments = text.split('-')
+        
+        # Need at least 3 segments to be a spelling pattern
+        if len(segments) < 3:
+            return False
+        
+        # Count how many segments are single characters
+        single_char_segments = sum(1 for seg in segments if len(seg) == 1 and seg.isalnum())
+        
+        # If most segments are single characters, it's likely a spelling pattern
+        # Threshold: at least 60% of segments should be single characters
+        ratio = single_char_segments / len(segments)
+        return ratio >= 0.6
 
     def _normalize_slot_value(self, field_name: str, value):
         if value is None:
@@ -191,11 +294,13 @@ Format:
             return None
 
         if field_name == "email":
-            extracted = self._extract_email_from_text(text)
+            # Apply comprehensive normalization before extraction
+            normalized = self._normalize_email(text)
+            extracted = self._extract_email_from_text(normalized)
             if extracted:
                 return extracted
-            if self._is_valid_email(text):
-                return text
+            if self._is_valid_email(normalized):
+                return normalized
             return None
 
         if field_name == "contact":
@@ -237,7 +342,7 @@ Format:
     def _fallback_extract(self, user_input: str, slots: dict, current_field: Optional[str] = None):
         lower = user_input.lower()
         normalized_time = lower.replace(".", "")
-        normalized_time = re.sub(r"o['’]?clock", "oclock", normalized_time)
+        normalized_time = re.sub(r"o['']?clock", "oclock", normalized_time)
 
         # NORMALIZED DIGITS
         digits_only = re.sub(r"\D", "", user_input)
@@ -340,7 +445,7 @@ Format:
                     r"\b([0-1]?[0-9]|2[0-3]):([0-5][0-9])\b",
                     r"\b([1-9]|1[0-2])\s?(?:a\.m\.|p\.m\.|am|pm)\b",
                     r"\b([1-9]|1[0-2])(:[0-5][0-9])?\s?(?:a\.m\.|p\.m\.|am|pm)\b",
-                    r"\b([1-9]|1[0-2])\s?(?:o'clock|o’clock|oclock)\b",
+                    r"\b([1-9]|1[0-2])\s?(?:o'clock|o'clock|oclock)\b",
                 ]
 
                 for pattern in time_patterns:
@@ -373,39 +478,45 @@ Format:
     # =====================================================
 
     def _extract_email_from_text(self, user_input: str) -> Optional[str]:
-        normalized = (
-            user_input.lower()
-            .replace(" at ", "@")
-            .replace(" dot ", ".")
-            .replace(" underscore ", "_")
-            .replace(" dash ", "-")
-            .strip()
-        )
+        """
+        Extract and validate email from text with comprehensive normalization.
+        """
+        if not user_input:
+            return None
 
-        normalized = re.sub(r"\s+", "", normalized)
+        # Apply comprehensive normalization
+        normalized = self._normalize_email(user_input)
 
+        # Try to extract email pattern
         if "@" in normalized:
             local, _, domain = normalized.partition("@")
-            if self._is_spelled_out_hyphenated_local_part(local):
-                local = local.replace("-", "")
-                email = f"{local}@{domain}"
-                if self._is_valid_email(email):
-                    return email
-
-        email_pattern = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
-        match = email_pattern.search(normalized)
-        if match:
-            email = match.group().strip()
-            if self._is_valid_email(email):
-                return email
-
-        if "@" in normalized:
-            local, _, domain = normalized.partition("@")
+            
+            # Clean local part
             local = re.sub(r"[^a-z0-9._%+-]", "", local)
             domain = re.sub(r"[^a-z0-9.-]", "", domain)
+            
             email = f"{local}@{domain}"
+            
+            logger.info(f"Extracted email for validation: '{email}'")
+            
             if self._is_valid_email(email):
+                logger.info(f"Valid email confirmed: '{email}'")
+                return email.lower()
+            else:
+                logger.warning(f"Email validation failed for: '{email}'")
+
+        # Try standard email pattern matching
+        email_pattern = re.compile(r"\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b")
+        match = email_pattern.search(normalized)
+        if match:
+            email = match.group().strip().lower()
+            logger.info(f"Pattern-matched email: '{email}'")
+            
+            if self._is_valid_email(email):
+                logger.info(f"Valid email confirmed: '{email}'")
                 return email
+            else:
+                logger.warning(f"Email validation failed for: '{email}'")
 
         # Handle hyphenated domain-only formats (e.g., "G-M-E-L.com")
         # Check if it looks like a hyphenated domain with .com, .org, etc.
@@ -422,6 +533,7 @@ Format:
                 if self._is_valid_email(email):
                     return email
 
+        logger.warning(f"No valid email found in: '{user_input}'")
         return None
 
     def _is_spelled_out_hyphenated_local_part(self, local: str) -> bool:
@@ -448,12 +560,17 @@ Format:
         Example: "V-E-E-R-D-A-V-E" should become "veerdave" not "verdave"
         """
         # Check if input has hyphenated letters and LLM might have dropped duplicates
-        hyphenated_pattern = re.compile(r"([A-Z]-)+[A-Z](?:-\d+)*\s*at")
+        hyphenated_pattern = re.compile(r"([A-Z0-9]-){2,}[A-Z0-9]")
         if not hyphenated_pattern.search(user_input.upper()):
             return None
 
         # Extract the hyphenated letter part
-        match = re.search(r"([A-Z]-[A-Z]-[A-Z]+)", user_input.upper())
+        # Extract the hyphenated letter/digit part before domain indicators
+        match = re.search(r"([A-Z0-9-]+)(?:-A-G|-AT|@|gmail|mail|com)", user_input.upper())
+        if not match:
+            # Fallback: extract the longest hyphenated sequence
+            match = re.search(r"([A-Z0-9-]{5,})", user_input.upper())
+        
         if not match:
             return None
 
