@@ -233,6 +233,68 @@ After launching:
 
 ---
 
+# Running as a Phone Call
+
+The same booking agent can answer real phone calls through Twilio Voice, or run
+in a browser over WebSockets. Both channels share one backend session store, so
+a caller can start on the web and continue on the phone with a six-digit handoff
+code.
+
+Twilio handles phone speech recognition and phone audio playback. The browser
+client uses WebSockets for real-time text and microphone audio, while this
+project reuses the existing `VoiceAgent` conversation and calendar workflow.
+
+## 1. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+## 2. Start the transport server
+
+```bash
+uvicorn phone_calling.server:app --host 0.0.0.0 --port 8000 --reload --log-level debug
+```
+
+## 3. Expose the webhook publicly
+
+For local development, use a tunnel such as ngrok:
+
+```bash
+ngrok http 8000
+```
+
+Add the public HTTPS URL to `.env`:
+
+```env
+PUBLIC_BASE_URL=https://your-ngrok-domain.ngrok-free.app
+TWILIO_VOICE=alice
+TWILIO_LANGUAGE=en-US
+TWILIO_PHONE_NUMBER=+1234567890
+BACKEND_URL=http://127.0.0.1:8000
+```
+
+## 4. Configure Twilio
+
+In your Twilio phone number settings:
+
+* Voice webhook: `https://your-domain/voice`
+* Method: `POST`
+* Status callback: `https://your-domain/voice/status`
+* Status callback method: `POST`
+
+## 5. Call to book
+
+* Open `http://127.0.0.1:8000/` — you'll see the Twilio number and a **Call Aria Now** button
+* Or call `TWILIO_PHONE_NUMBER` directly from your phone
+* Speak naturally with Aria — no browser typing or microphone needed
+* Streamlit (`streamlit run main.py`) also shows the call number and instructions
+
+When someone calls the Twilio number, Aria greets the caller, gathers speech
+turns, books the appointment, and hangs up after confirmation.
+
+---
+
 # Sample Booking Flow
 
 ### User
@@ -296,7 +358,6 @@ Coverage includes:
 
 # Future Improvements
 
-* Twilio Voice Calling Integration
 * WhatsApp Voice Notes
 * Multi-language Support
 * Appointment Cancellation

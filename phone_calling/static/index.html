@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aria — Call to Book</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050816;
+      --panel: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.12);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #7c3aed;
+      --accent-2: #2563eb;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, Segoe UI, sans-serif;
+      background:
+        radial-gradient(circle at top left, #7c3aed 0%, transparent 25%),
+        radial-gradient(circle at bottom right, #2563eb 0%, transparent 25%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    .shell {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 2.2rem;
+    }
+
+    .header p {
+      color: var(--muted);
+      margin-top: 10px;
+      line-height: 1.6;
+    }
+
+    .panel {
+      margin-top: 28px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 32px 28px;
+      text-align: center;
+      backdrop-filter: blur(12px);
+    }
+
+    .phone-icon {
+      width: 88px;
+      height: 88px;
+      margin: 0 auto 20px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 2.4rem;
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.35), rgba(37, 99, 235, 0.35));
+      border: 1px solid var(--border);
+    }
+
+    .phone-number {
+      font-size: clamp(1.8rem, 5vw, 2.6rem);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      margin: 8px 0 24px;
+      word-break: break-word;
+    }
+
+    .call-btn {
+      display: inline-block;
+      text-decoration: none;
+      color: white;
+      padding: 16px 32px;
+      border-radius: 14px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 12px 30px rgba(37, 99, 235, 0.25);
+    }
+
+    .call-btn.disabled {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
+    .steps {
+      margin-top: 28px;
+      text-align: left;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .steps ol {
+      padding-left: 20px;
+      margin: 12px 0 0;
+    }
+
+    .steps li {
+      margin-bottom: 8px;
+    }
+
+    .warning {
+      margin-top: 20px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: #fecaca;
+      text-align: left;
+      display: none;
+    }
+
+    .warning.visible {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="header">
+      <h1>Aria — Call to Book</h1>
+      <p>Book your appointment by phone. Call the number below and speak with Aria directly — no typing or browser microphone needed.</p>
+    </div>
+
+    <section class="panel">
+      <div class="phone-icon">📞</div>
+      <div>Call this number</div>
+      <div id="phoneNumber" class="phone-number">Loading…</div>
+      <a id="callBtn" class="call-btn disabled" href="#">Call Aria Now</a>
+
+      <div class="steps">
+        <strong>How it works</strong>
+        <ol>
+          <li>Tap <strong>Call Aria Now</strong> or dial the number from your phone.</li>
+          <li>Tell Aria what appointment you need.</li>
+          <li>Answer her questions to complete the booking.</li>
+          <li>You'll receive a confirmation email when done.</li>
+        </ol>
+      </div>
+
+      <div id="warning" class="warning">
+        Add <code>TWILIO_PHONE_NUMBER=+1234567890</code> to your <code>.env</code> file and restart the server.
+      </div>
+    </section>
+  </div>
+
+  <script>
+    async function loadPhoneConfig() {
+      const phoneEl = document.getElementById("phoneNumber");
+      const callBtn = document.getElementById("callBtn");
+      const warningEl = document.getElementById("warning");
+
+      try {
+        const response = await fetch("/api/phone-config");
+        const data = await response.json();
+        const phoneNumber = (data.phone_number || "").trim();
+
+        if (!phoneNumber) {
+          phoneEl.textContent = "Phone number not configured";
+          warningEl.classList.add("visible");
+          return;
+        }
+
+        phoneEl.textContent = phoneNumber;
+        callBtn.href = `tel:${phoneNumber.replace(/\s/g, "")}`;
+        callBtn.classList.remove("disabled");
+      } catch (error) {
+        phoneEl.textContent = "Unable to load phone number";
+        warningEl.textContent = error.message;
+        warningEl.classList.add("visible");
+      }
+    }
+
+    loadPhoneConfig();
+  </script>
+</body>
+</html>

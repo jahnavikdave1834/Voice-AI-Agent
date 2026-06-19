@@ -33,9 +33,11 @@ class VoiceAgent:
     # INIT
     # =====================================================
 
-    def __init__(self, settings):
+    def __init__(self, settings, enable_audio=True):
 
         self.settings = settings
+
+        self.enable_audio = enable_audio
 
         self.dialogue_manager = (
             DialogueManager()
@@ -57,15 +59,21 @@ class VoiceAgent:
             )
         )
 
-        self.stt = SpeechRecognizer(
-            model_size=
-                settings.WHISPER_MODEL_SIZE
-        )
+        self.stt = None
 
-        self.tts = TextToSpeech(
-            lang=
-                settings.TTS_LANGUAGE
-        )
+        self.tts = None
+
+        if enable_audio:
+
+            self.stt = SpeechRecognizer(
+                model_size=
+                    settings.WHISPER_MODEL_SIZE
+            )
+
+            self.tts = TextToSpeech(
+                lang=
+                    settings.TTS_LANGUAGE
+            )
 
         self.email_sender = (
             EmailSender(
@@ -569,6 +577,12 @@ Options:
         # SPEECH TO TEXT
         # ============================================
 
+        if not self.stt:
+
+            raise RuntimeError(
+                "Audio input is not enabled for this agent."
+            )
+
         text = (
             self.stt
             .transcribe_from_bytes(
@@ -609,6 +623,10 @@ Options:
     ):
 
         try:
+
+            if not self.tts:
+
+                return None
 
             return (
                 self.tts

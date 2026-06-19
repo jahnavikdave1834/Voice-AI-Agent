@@ -427,6 +427,8 @@ def init_session_state():
 
         st.session_state.greeting_done = False
 
+        st.session_state.use_phone_mode = True
+
         logger.info(
             "Session initialized."
         )
@@ -574,6 +576,99 @@ def render_history(messages):
                 )
 
 # =========================================================
+# LIVE CHANNEL SWITCH
+# =========================================================
+
+def render_channel_switch(settings):
+
+    st.markdown("### Book by Phone")
+
+    backend_url = settings.BACKEND_URL.rstrip("/")
+    phone_number = getattr(settings, "EXOTEL_PHONE_NUMBER", "") or ""
+    phone_display = phone_number or "Set EXOTEL_PHONE_NUMBER in .env"
+
+    st.info(
+        "Call Aria directly on your phone using Exotel. No typing or browser microphone needed."
+    )
+
+    st.markdown(f"**Exotel number:** `{phone_display}`")
+
+    if phone_number:
+        st.link_button(
+            "Call Aria Now",
+            f"tel:{phone_number.replace(' ', '')}",
+            use_container_width=True,
+        )
+
+    st.link_button(
+        "Open Call Page",
+        backend_url,
+        use_container_width=True,
+    )
+
+    st.caption(f"Webhook: `{backend_url}/voice`")
+
+    if not phone_number:
+        st.warning(
+            "Add `EXOTEL_PHONE_NUMBER=09513886363` to your `.env` file and restart the server."
+        )
+
+
+def render_phone_panel(settings):
+    phone_number = getattr(settings, "EXOTEL_PHONE_NUMBER", "") or ""
+
+    st.markdown(
+        """
+<div class="mic-circle">
+📞
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    if phone_number:
+        st.markdown(
+            f"""
+<div class="assistant-box">
+
+📞 **Call to book**
+
+<br><br>
+
+Dial **{phone_number}** and speak with Aria to schedule your appointment.
+
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
+        st.link_button(
+            "Call Aria Now",
+            f"tel:{phone_number.replace(' ', '')}",
+            use_container_width=True,
+        )
+    else:
+        st.warning(
+            "Set `EXOTEL_PHONE_NUMBER` in `.env`, restart the server, then call that number."
+        )
+
+    st.markdown(
+        """
+<div class="transcript-box">
+
+1. Call the number above<br>
+2. Tell Aria what you need<br>
+3. Answer her questions<br>
+4. Receive email confirmation
+
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+# =========================================================
 # MAIN
 # =========================================================
 
@@ -584,30 +679,6 @@ def main():
     render_header()
 
     agent = st.session_state.agent
-
-    # =====================================================
-    # GREETING
-    # =====================================================
-
-    if not st.session_state.greeting_done:
-
-        greeting = (
-            agent.get_greeting()
-        )
-
-        st.session_state.latest_response = (
-            greeting
-        )
-
-        st.session_state.transcript = (
-            list(agent.transcript)
-        )
-
-        st.session_state.greeting_done = True
-
-    # =====================================================
-    # LAYOUT
-    # =====================================================
 
     left, right = st.columns(
         [2.2, 1]
@@ -626,145 +697,8 @@ def main():
             unsafe_allow_html=True,
         )
 
-        st.markdown(
-            """
-<div class="mic-circle">
-🎙️
-</div>
-""",
-            unsafe_allow_html=True,
-        )
-
-        st.markdown(
-            "<br>",
-            unsafe_allow_html=True,
-        )
-
-        audio_input = st.audio_input(
-            "Speak Naturally"
-        )
-
-        if audio_input:
-
-            audio_bytes = (
-                audio_input.getvalue()
-            )
-
-            audio_hash = hash(
-                audio_bytes
-            )
-
-            if (
-                audio_hash
-                != st.session_state.last_audio_hash
-            ):
-
-                st.session_state.last_audio_hash = (
-                    audio_hash
-                )
-
-                with st.spinner(
-                    "🎧 Aria is listening..."
-                ):
-
-                    try:
-
-                        (
-                            user_text,
-                            response,
-                        ) = (
-                            agent.process_audio_input(
-                                audio_bytes
-                            )
-                        )
-
-                        st.session_state.latest_user_text = (
-                            user_text
-                        )
-
-                        st.session_state.latest_response = (
-                            response
-                        )
-
-                        st.session_state.transcript = (
-                            list(
-                                agent.transcript
-                            )
-                        )
-
-                        # =========================
-                        # TTS
-                        # =========================
-
-                        audio_response = (
-                            agent.get_tts_audio(
-                                response
-                            )
-                        )
-
-                        if audio_response:
-
-                            st.audio(
-                                audio_response,
-                                format="audio/mp3",
-                            )
-
-                    except Exception as e:
-
-                        logger.error(
-                            str(e),
-                            exc_info=True,
-                        )
-
-                        st.error(
-                            f"⚠️ {e}"
-                        )
-
-        # =================================================
-        # LIVE TRANSCRIPT
-        # =================================================
-
-        if (
-            st.session_state.latest_user_text
-        ):
-
-            st.markdown(
-                f"""
-<div class="transcript-box">
-
-🎤 You Said:
-
-<br><br>
-
-{st.session_state.latest_user_text}
-
-</div>
-""",
-                unsafe_allow_html=True,
-            )
-
-        # =================================================
-        # ASSISTANT RESPONSE
-        # =================================================
-
-        if (
-            st.session_state.latest_response
-        ):
-
-            st.markdown(
-                f"""
-<div class="assistant-box">
-
-🤖 Aria:
-
-<br><br>
-
-{st.session_state.latest_response}
-
-</div>
-""",
-                unsafe_allow_html=True,
-            )
+        settings = get_settings()
+        render_phone_panel(settings)
 
         st.markdown(
             "</div>",
@@ -776,37 +710,16 @@ def main():
             unsafe_allow_html=True,
         )
 
-        render_history(
-            st.session_state.transcript
-        )
-
-        st.markdown(
-            """
-            <script>
-
-            var elements =
-            window.parent.document.querySelectorAll(
-                '[data-testid="stVerticalBlock"]'
-            );
-
-            if(elements.length > 0){
-
-                elements[elements.length - 1].scrollIntoView({
-                    behavior: 'smooth'
-                });
-
-            }
-
-            </script>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    # =====================================================
-    # RIGHT
-    # =====================================================
+        if st.session_state.get("transcript"):
+            render_history(
+                st.session_state.transcript
+            )
 
     with right:
+
+        render_channel_switch(get_settings())
+
+        st.markdown("---")
 
         render_booking_progress(
             agent
