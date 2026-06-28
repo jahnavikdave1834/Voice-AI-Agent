@@ -300,7 +300,7 @@ Once the Exotel number is configured, every incoming call is automatically route
 
 ---
 
-# Sample Booking Flow
+## Screenshots
 
 <img width="4000" height="3000" alt="mix" src="https://github.com/user-attachments/assets/a78c0943-720b-4812-8224-f55e49d56089" />
 
