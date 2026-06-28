@@ -13,7 +13,6 @@ This project addresses these challenges by building a Voice AI Agent capable of 
 ---
 
 # Features
-s
 ### Voice Processing
 
 * Speech-to-Text using OpenAI Whisper (Local)
