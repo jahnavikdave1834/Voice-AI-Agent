@@ -302,9 +302,7 @@ Once the Exotel number is configured, every incoming call is automatically route
 
 # Sample Booking Flow
 
-<img width="924" height="989" alt="mail" src="https://github.com/user-attachments/assets/d6d7035a-ca07-45ac-aa77-177476cd04ff" />
-
-<img width="924" height="1928" alt="calendar" src="https://github.com/user-attachments/assets/6ad8763a-b1f9-410a-af09-5e511c5ee99f" />
+<img width="4000" height="3000" alt="mix" src="https://github.com/user-attachments/assets/a78c0943-720b-4812-8224-f55e49d56089" />
 
 
 Run all tests:
