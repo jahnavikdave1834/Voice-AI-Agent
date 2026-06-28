@@ -302,42 +302,10 @@ Once the Exotel number is configured, every incoming call is automatically route
 
 # Sample Booking Flow
 
-### User
+<img width="924" height="989" alt="mail" src="https://github.com/user-attachments/assets/d6d7035a-ca07-45ac-aa77-177476cd04ff" />
 
-> I need a dental appointment next Tuesday at 3 PM.
+<img width="924" height="1928" alt="calendar" src="https://github.com/user-attachments/assets/6ad8763a-b1f9-410a-af09-5e511c5ee99f" />
 
-### AI Agent
-
-> Sure. May I know your name?
-
-### User
-
-> Jahnavi Dave.
-
-### AI Agent
-
-> Thank you. Could you share your contact number?
-
-### User
-
-> 9876543210
-
-### AI Agent
-
-> Your appointment is available on Tuesday at 3 PM. Shall I confirm the booking?
-
-### User
-
-> Yes.
-
-### AI Agent
-
-> Your appointment has been successfully booked. A confirmation email has been sent.
-
----
-
-
-# Testing
 
 Run all tests:
 
