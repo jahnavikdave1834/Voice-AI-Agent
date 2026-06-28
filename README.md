@@ -274,24 +274,29 @@ TWILIO_PHONE_NUMBER=+1234567890
 BACKEND_URL=http://127.0.0.1:8000
 ```
 
-## 4. Configure Twilio
+## 4. Exotel Configuration
 
-In your Twilio phone number settings:
+Configure the Exotel Voicebot (or AgentStream) Applet with your backend endpoint.
 
-* Voice webhook: `https://your-domain/voice`
-* Method: `POST`
-* Status callback: `https://your-domain/voice/status`
-* Status callback method: `POST`
+* **Voicebot/AgentStream WebSocket URL:** `wss://your-domain/exotel/stream`
+* **Fallback Webhook (if applicable):** `https://your-domain/voice`
+* **HTTP Method:** `POST`
+* **Call Status Webhook:** `https://your-domain/voice/status`
+* **Status Callback Method:** `POST`
 
-## 5. Call to book
+When a customer calls the Exotel number, the call is routed to the configured Voicebot/AgentStream applet, which streams the caller's audio to the AI backend. The backend processes the conversation, checks Google Calendar availability, books appointments, and responds with synthesized voice in real time.
 
-* Open `http://127.0.0.1:8000/` — you'll see the Twilio number and a **Call Aria Now** button
-* Or call `TWILIO_PHONE_NUMBER` directly from your phone
-* Speak naturally with Aria — no browser typing or microphone needed
-* Streamlit (`streamlit run main.py`) also shows the call number and instructions
 
-When someone calls the Twilio number, Aria greets the caller, gathers speech
-turns, books the appointment, and hangs up after confirmation.
+## 5. Call to Book
+
+* Configure your Exotel Voicebot/AgentStream applet to point to your AI backend.
+* Ensure your backend is publicly accessible (e.g., via ngrok or a deployed server).
+* Call your Exotel virtual number from any phone.
+* Speak naturally with the AI assistant—no browser interaction or typing is required.
+* The assistant collects appointment details, checks Google Calendar for availability, books the appointment, sends a confirmation email, and ends the call upon successful booking.
+
+Once the Exotel number is configured, every incoming call is automatically routed to the AI backend for real-time voice interaction and appointment scheduling.
+
 
 ---
 
